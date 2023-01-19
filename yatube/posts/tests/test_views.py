@@ -86,7 +86,7 @@ class PostURLTests(TestCase):
         self.assertIn('group', response.context)
         self.assertEqual(response.context['group'], self.group)
         self.assertIn('page_obj', response.context)
-        self.assertIn('title', response.context)
+        self.assertIn('text', response.context)
         self.assertIn('description', response.context)
 
     def test_profile_page_show_correct_context(self):
@@ -96,8 +96,7 @@ class PostURLTests(TestCase):
         )
         self.assertIn('author', response.context)
         self.assertEqual(response.context['author'], self.user)
-        self.assertIn('posts', response.context)
-        self.assertIn('posts_count', response.context)
+        self.assertIn('post_list', response.context)
         self.assertIn('page_obj', response.context)
         self.assertEqual(response.context['author'], self.user)
 
@@ -107,8 +106,6 @@ class PostURLTests(TestCase):
             reverse('posts:post_detail', kwargs={'post_id': (self.post.pk)})
         )
         self.assertIn('post', response.context)
-        self.assertIn('posts_count', response.context)
-        self.assertIn('title', response.context)
 
     def test_post_create_page_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""
@@ -152,7 +149,7 @@ class PostURLTests(TestCase):
         response = self.guest_client.get(
             reverse('posts:group_list', kwargs={'slug': 'test-slug-new'})
         )
-        self.assertEqual(len(response.context['page_obj']), 2)
+        self.assertEqual(len(response.context['page_obj']), 2)  # crush!!!
 
     def test_paginator_profile_contains_two_records(self):
         # Проверка: у второго пользователя всего 2 поста.

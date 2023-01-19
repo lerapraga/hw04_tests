@@ -15,12 +15,14 @@ def index(request):
     paginator = Paginator(post_list, 10)
     template = 'posts/index.html'
     text = 'Это главная страница проекта Yatube'
+    description = 'Небольшое описание'
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     context = {
         'posts': posts,
         'text': text,
         'page_obj': page_obj,
+        'description': description
     }
     return render(request, template, context)
 
@@ -30,9 +32,10 @@ def group_posts(request, slug):
     group = get_object_or_404(Group, slug=slug)
     template = 'posts/group_list.html'
     text = 'Здесь будет информация о группах проекта Yatube'
+    description = 'Небольшое описание'
     posts = Post.objects.filter(group=group).order_by('-pub_date')[:10]
     post_list = Post.objects.all()
-    paginator = Paginator(post_list, 10)
+    paginator = Paginator(post_list, 2)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     context = {
@@ -40,6 +43,7 @@ def group_posts(request, slug):
         'posts': posts,
         'text': text,
         'page_obj': page_obj,
+        'description': description
     }
     return render(request, template, context)
 

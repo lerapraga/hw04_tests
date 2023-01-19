@@ -15,7 +15,8 @@ class Group(models.Model):
 
 
 class Post(models.Model):
-    text = models.TextField('Текст поста')
+    text = models.TextField('Текст поста',
+                            help_text='Напишите текст вашей записи.')
     pub_date = models.DateTimeField(
         'Дата публикации',
         auto_now_add=True
@@ -32,7 +33,8 @@ class Post(models.Model):
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
-        related_name='posts'
+        related_name='posts',
+        help_text='Группа, к которой относится запись.'
     )
 
     class Meta:
@@ -40,6 +42,4 @@ class Post(models.Model):
 
     def __str__(self):
         """Возвращаем автора, дату публикации, пост 15 символов."""
-        return (f'Автор: , {self.author}',
-                f'Дата публикации: , {self.pub_date}',
-                f'Пост: , {self.text[:15]}')
+        return self.text[:15]
