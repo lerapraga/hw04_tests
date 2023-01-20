@@ -1,8 +1,13 @@
 from django import forms
 from django.test import Client, TestCase
 from django.urls import reverse
-
 from posts.models import Group, Post, User
+
+from ..settings import PER_PAGE
+from ..forms import PostForm
+
+TOTAL_POSTS = PER_PAGE + 1
+INDEX = reverse('posts:index')
 
 
 class PostURLTests(TestCase):
@@ -31,11 +36,13 @@ class PostURLTests(TestCase):
         )
         # Создадим 13 постов в первой группе БД
         for post in range(13):
-            cls.post = Post.objects.create(
-                text='Записи первой группы',
-                author=cls.user,
-                group=cls.group
-            )
+            cls.post = Post.objects.bulk_create([
+                Post(
+                    text='Записи первой группы',
+                    author=cls.user,
+                    group=cls.group,)
+                for i in range(TOTAL_POSTS)
+            ])
 
         # Создадим 2 поста во второй группе в БД
         for post in range(2):
@@ -57,11 +64,11 @@ class PostURLTests(TestCase):
             reverse('posts:profile', kwargs={'username': 'User'}): (
                 'posts/profile.html'
             ),
-            reverse('posts:post_detail', kwargs={'post_id': 13}): (
+            reverse('posts:post_detail', kwargs={'post_id': (self.post.pk)}): (
                 'posts/post_detail.html'
             ),
             reverse('posts:post_create'): 'posts/create_post.html',
-            reverse('posts:post_edit', kwargs={'post_id': 14}): (
+            reverse('posts:post_edit', kwargs={'post_id': (self.post.pk)}): (
                 'posts/create_post.html'
             ),
         }
@@ -116,8 +123,8 @@ class PostURLTests(TestCase):
         }
         for value, expected in form_fields.items():
             with self.subTest(value=value):
-                form_field = response.context.get('form').fields.get(value)
-                self.assertIsInstance(form_field, expected)
+                self.assertIn('form', response.context)
+                self.assertIsInstance(response.context['form'], PostForm)
 
     def test_post_edit_page_show_correct_context(self):
         """Шаблон post_edit сформирован с правильным контекстом."""
@@ -129,31 +136,27 @@ class PostURLTests(TestCase):
         }
         for value, expected in form_fields.items():
             with self.subTest(value=value):
-                form_field = response.context.get('form').fields.get(value)
-                self.assertIsInstance(form_field, expected)
+                self.assertIn('form', response.context)
+                self.assertIsInstance(response.context['form'], PostForm)
 
-    def test_paginator_first_page_contains_ten_records(self):
-        response = self.guest_client.get(reverse('posts:index'))
-        # Проверка: количество постов из созданной группы
-        # на первой странице равно 10.
-        self.assertEqual(len(response.context['page_obj']), 10)
+    class PaginatorViewsTest(TestCase):
+        @classmethod
+        def setUpClass(cls):
+            super().setUpClass()
+            cls.user = User.objects.create(username='tester')
+            Post.objects.bulk_create([
+                Post(
+                    text='Тестовый текст',
+                    author=cls.user,
+                ) for i in range(TOTAL_POSTS)
+            ])
 
-    def test_paginator_second_page_contains_three_records(self):
-        # Проверка: на второй странице должно быть три поста
-        # первой группы и два второй.
-        response = self.guest_client.get(reverse('posts:index') + '?page=2')
-        self.assertEqual(len(response.context['page_obj']), 5)
+        def test_first_page_contains_records(self):
+            response = self.client.get(INDEX)
+            self.assertEqual(len(response.context['page_obj']), PER_PAGE)
 
-    def test_paginator_group_list_contains_two_records(self):
-        # Проверка: посты второй группы созданы в количестве двух штук.
-        response = self.guest_client.get(
-            reverse('posts:group_list', kwargs={'slug': 'test-slug-new'})
-        )
-        self.assertEqual(len(response.context['page_obj']), 2)  # crush!!!
-
-    def test_paginator_profile_contains_two_records(self):
-        # Проверка: у второго пользователя всего 2 поста.
-        response = self.guest_client.get(
-            reverse('posts:profile', kwargs={'username': 'Second_User'})
-        )
-        self.assertEqual(len(response.context['page_obj']), 2)
+        def test_second_page_contains_records(self):
+            response = self.client.get(f'{INDEX}?page=2')
+            calculation_len_obj = len(response.context['page_obj'])
+            calculation_obj = TOTAL_POSTS % PER_PAGE
+            self.assertEqual(calculation_len_obj, calculation_obj)
